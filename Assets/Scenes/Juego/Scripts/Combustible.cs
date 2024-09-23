@@ -20,28 +20,10 @@ public class Combustible : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Player")
+        if (collision.gameObject.tag == "Player" || collision.gameObject.tag == "Wall" || collision.gameObject.tag == "Area" || collision.gameObject.tag == "Area (1)")
         {
             RandomPosition();
 
-        }
-        else if (collision.gameObject.tag == "Wall")
-        {
-            RandomPosition();
-        }
-
-        else if (collision.gameObject.tag == "Area")
-        {
-            RandomPosition();
-        }
-
-        else if (collision.gameObject.tag == "Area (1)")
-        {
-            RandomPosition();
         }
     }
 }
-
-
-
-

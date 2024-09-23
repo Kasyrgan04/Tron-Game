@@ -30,9 +30,23 @@ public class Pila<T>
         return lista.GetAt(0);
     }
 
+    public T PeekAt(int index)
+    {
+        if (index < 0 || index >= lista.Count())
+        {
+            throw new IndexOutOfRangeException("Indice fuera de rango");
+        }
+        return lista.GetAt(index);
+    }
+
     public int Count()
     {
         return lista.Count();
+    }
+
+    public void Clear()
+    {
+        lista.Clear();
     }
 
 }

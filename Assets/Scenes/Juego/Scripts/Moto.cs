@@ -1,28 +1,52 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEditor.PackageManager.Requests;
 using UnityEngine;
+using UnityEngine.UI;
+using static UnityEditor.Progress;
 
 public class Moto : MonoBehaviour
 {
+    //Manejo de la moto
     public Vector2 direccion = Vector2.up; // Dirección inicial de la moto
     public List<Transform> estela = new List<Transform>(); // Lista de partes de la estela
-    public Pila<string> poderes = new Pila<string>(); // Pila de poderes
-    public Cola<string> items = new Cola<string>(); // Cola de items
-    public Transform estelaPrefab; // Prefab de la estela
-    public int tamanoInicial = 4; // Tamaño inicial de la moto
     public Grid2 grid;
     public Nodo2 nodoActual;
     public int nodosRecorridos = 0;
-    public float velocidad = 5.0f;
     public int combustibleTotal;
-    
+    public Transform estelaPrefab; // Prefab de la estela
+    public int tamanoInicial = 4; // Tamaño inicial de la moto
+    //Poderes e items
+    public Pila<string> poderes = new Pila<string>(); // Pila de poderes
+    public string poderActual;
+    public bool shield = false;
+    public Color colorMoto;
+    public Color colorEscudo = Color.cyan;
+    public Renderer renderMoto;
+    public float tEscudo = 5.0f;
+    public float tempEscudo = 0.0f;
+    public Cola<string> items = new Cola<string>(); // Cola de items
+    [SerializeField] Slider barraCombustible;
+    public string itemActual;
+
+
+
+
+
 
     // Start is called before the first frame update
-    public void Start()
+    public virtual void Start()
     {
         nodoActual = FindObjectOfType<Grid2>().primerNodo; // Encuentra el nodo inicial
-        combustibleTotal= 100;
+        
+
+        combustibleTotal = 100;
+        barraCombustible.maxValue = 100;
+        barraCombustible.value = combustibleTotal;
+
+        renderMoto = GetComponent<Renderer>();
+        colorMoto = renderMoto.material.color;
         Reset();
 
     }
@@ -33,94 +57,129 @@ public class Moto : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.UpArrow))
         {
             direccion = Vector2.up;
+            Rotacion(0);
         }
         else if (Input.GetKeyDown(KeyCode.DownArrow))
         {
             direccion = Vector2.down;
+            Rotacion(180);
         }
         else if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             direccion = Vector2.right;
+            Rotacion(-90);
+
         }
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             direccion = Vector2.left;
+            Rotacion(90);
+
+        }
+        else if(poderes.Count()>0)
+        {
+            DelayPoder();
+        }
+
+        if(shield == true)
+        {
+            tempEscudo -= Time.deltaTime;
+            Debug.Log("Escudo: " + tempEscudo);
+            if (tempEscudo <= 0)
+            {
+                shield = false;
+                renderMoto.material.color = colorMoto;
+            }
         }
 
         if (items.Count() > 0) 
         {
-            AplicarItem();
+            DelayItem();
         }
 
-        if(poderes.Count() > 0)
+
+        if (combustibleTotal <= 0)
         {
-            AplicarPoder();
+            Reset();
+            
         }
+
+        ContarNodosRecorridos();
+        
     }
 
-    public void FixedUpdate()
+    public virtual void FixedUpdate()
     {
         for (int i = estela.Count - 1; i > 0; i--)
         {
             estela[i].position = estela[i - 1].position;
+
         }
 
         this.transform.position = new Vector3(
 
             Mathf.Round(this.transform.position.x) + direccion.x,
-            Mathf.Round(this.transform.position.y) + direccion.y,
+            Mathf.Round(this.transform.position.y) + direccion.y ,
             0.0f);
+        
 
-        ContarNodosRecorridos();
-        ReducirCombustible();
+
     }
 
-    private void ReducirCombustible()
+    public void ReducirCombustible()
     {
-        if(nodosRecorridos >= 5)
-        {
-            combustibleTotal--;
-            nodosRecorridos = 0;
-        }
+        combustibleTotal--;
+        
+        barraCombustible.value = combustibleTotal;
 
-        if (combustibleTotal <= 0)
-        {
-            Reset();
-            //Insertar GameOver
-        }
+    }
+
+    public void DelayItem()
+    {
+        string item = items.Dequeue();
+
+        Invoke("AplicarItem", 1f);
+        itemActual = item;  // Guardar el ítem actual
     }
 
     public void AplicarItem()
     {
-        string item = items.Dequeue();
-
-        switch (item)
+        switch (itemActual)
         {
             case "Combustible":
-                combustibleTotal += Random.Range(1, 90);
+                combustibleTotal += Random.Range(10, 50);
                 break;
             case "Growth":
                 Crecer();
                 break;
             case "Bomb":
-                //Insertar código para activar bomba
+                Reset();
                 break;
         }
+        Debug.Log("Item aplicado: " + itemActual);
+    }
+
+    public void DelayPoder()
+    {
+        string poder = poderes.Pop();
+
+        Invoke("AplicarPoder", 10f);
+        poderActual = poder;  
     }
 
     public void AplicarPoder()
     {
-        string poder = poderes.Pop();
 
-        switch (poder)
+
+        if (poderActual == "Velocity")
         {
-            case "Velocity":
-                velocidad = 10.0f;
-                break;
-            case "Shield":
-                //Insertar código para activar escudo
-                break;
+            return;
         }
+        else if (poderActual == "Shield")
+        {
+            Escudo(10.0f);
+        }
+       
     }
 
     public void ContarNodosRecorridos()
@@ -130,6 +189,7 @@ public class Moto : MonoBehaviour
         {
             nodosRecorridos = 0;
             Crecer();
+            ReducirCombustible();
         }
     }
 
@@ -139,6 +199,28 @@ public class Moto : MonoBehaviour
         estelaParte.position = estela[estela.Count - 1].position;
         estela.Add(estelaParte);
     }
+
+    public void Rotacion(float rotacion)
+    {
+        
+        this.transform.rotation = Quaternion.Euler(0, 0, rotacion);
+
+        
+        foreach (Transform parteEstela in estela)
+        {
+            parteEstela.rotation = Quaternion.Euler(0, 0, rotacion);
+        }
+    }
+
+    public void Escudo(float duracion)
+    {
+        shield = true;
+        tEscudo = duracion;
+        tempEscudo = duracion;
+        renderMoto.material.color = colorEscudo;
+    }
+
+
 
     public void Reset()
     {
@@ -156,6 +238,9 @@ public class Moto : MonoBehaviour
         }
 
         this.transform.position = Vector3.zero;
+        combustibleTotal = 100;
+        poderes.Clear();
+        items.Clear();
     }
 
     public void OnTriggerEnter2D(Collider2D collision)
@@ -170,35 +255,29 @@ public class Moto : MonoBehaviour
             items.Enqueue("Growth",2);
         }
 
-        else if (collision.gameObject.tag == "Bomb")
+        else if (collision.gameObject.tag == "Bomb" && !shield)
         {
             items.Enqueue("Bomb",2);
-        }
-
-        else if (collision.gameObject.tag == "Wall")
-        {
-            Reset();
         }
 
         else if(collision.gameObject.tag == "Velocity")
         {
             poderes.Push("Velocity");
         }
+
         else if(collision.gameObject.tag == "Shield")
         {
             poderes.Push("Shield");
         }
 
-        else if (collision.gameObject.tag == "Moto")
+        else if (collision.gameObject.tag == "Player" || collision.gameObject.tag == "Bot" || collision.gameObject.tag == "Estela" && !shield)
         {
             Reset();
         }
-
-        else if (collision.gameObject.tag == "Bot")
+        else if(collision.gameObject.tag == "Wall")
         {
             Reset();
         }
-
 
     }
 

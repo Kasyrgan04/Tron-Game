@@ -90,5 +90,11 @@ public class Cola<T>
 
         return head.Data;
     }
+
+    public void Clear()
+    {
+        head = null;
+        count = 0;
+    }
 }
 
