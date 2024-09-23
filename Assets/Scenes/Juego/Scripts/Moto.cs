@@ -1,10 +1,9 @@
-using System.Collections;
+
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor.PackageManager.Requests;
+
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEditor.Progress;
+
 
 public class Moto : MonoBehaviour
 {
@@ -241,6 +240,8 @@ public class Moto : MonoBehaviour
         combustibleTotal = 100;
         poderes.Clear();
         items.Clear();
+        shield = false;
+        tempEscudo = 0.0f;
     }
 
     public void OnTriggerEnter2D(Collider2D collision)
